@@ -1,3 +1,5 @@
+from datetime import datetime
+
 class usersdata:
     users=[]
     def __init__(self,user_id:int,user_name:str,mail_id:str,phn_no:str,password:str):
@@ -91,16 +93,122 @@ class theatresfunctionality:
 
     def select_showtime(self, selected_theatre):
         show_time = self.display_showtime(selected_theatre)
+        print("--------------------------------------------------------\n")
         show_id = int(input("\nEnter the Show_id:\n"))
         print("--------------------------------------------------------\n")
         if show_id > 0 and show_id <= 4: 
             return show_time[0][show_id]
 
+class seatsdata:
+    seats=[]
+    def __init__(self,theatre_name,show_time):
+        self.theatre_name = theatre_name
+        self.show_time = show_time
+        self.seats = [["A1","A2","A3","A4","A5"],
+                      ["B1","B2","B3","B4","B5"],
+                      ["C1","C2","C3","C4","C5"],
+                      ["D1","D2","D3","D4","D5"]]
+
+class seatsfunctionality:
+    def display_seats(self,theatre_name,show_time):
+        required_seats =[seat_details.seats for seat_details in seatsdata.seats if seat_details.theatre_name == theatre_name and seat_details.show_time == show_time]
+        if required_seats == []:
+            new_seats = seatsdata(theatre_name,show_time)
+            seatsdata.seats.append(new_seats)
+            self.display_seats(theatre_name,show_time)
+        
+        else:
+            for seat_details in seatsdata.seats:
+                if seat_details.theatre_name == theatre_name and seat_details.show_time == show_time:
+                    for rows in seat_details.seats:
+                        print(*rows)
+                        
+    def select_seats(self,theatre_name,show_time):
+        self.display_seats(theatre_name,show_time)
+        required_seats = [seat_details.seats for seat_details in seatsdata.seats if seat_details.theatre_name == theatre_name and seat_details.show_time == show_time]
+        requested_seats = input("\nEnter the seats as space separated (A1.A2,B1):\n").upper().split(' ')
+        selected_seats=[]
+        for rows in required_seats[0]:
+            for seat in rows:
+                if seat in requested_seats:
+                    selected_seats.append(seat)
+    
+        
+        if len(selected_seats) == len(requested_seats):
+            for rows in required_seats[0]:
+                for i in range(len(rows)):
+                    if rows[i] in selected_seats:
+                        rows[i]= '0 '
+            return selected_seats
+
+class bookingsdata:
+    bookings=[]
+    def __init__(self,mail_id,selected_movie,selected_theatre,selected_show_time,selected_seats,total_price,payment_mode,booked_time):
+        self.mail_id = mail_id
+        self.movie = selected_movie
+        self.theatre = selected_theatre
+        self.show_time = selected_show_time
+        self.seats = selected_seats
+        self.price = total_price
+        self.payment_mode = payment_mode
+        self.booked_time = booked_time
+
+class bookingfunctionality:
+    def booking_preview(self,mail_id,selected_movie,selected_theatre,selected_show_time,selected_seats,total_price):
+        print("---------------------------------------------------\n")
+        print("Booking Preview \n")
+        print(f'Movie Details: {selected_movie}')
+        print(f'Theatre details : {selected_theatre}')
+        print(f'Show details : {selected_show_time}')
+        print(f'Seats details : {selected_seats}')
+        print(f'Price details : {total_price}')
+        print("----------------------------------------------------\n")
+        print("Payment option \n1.card\n2.UPI")
+        payment_choice = int(input("\nEnter the input(card / UPI) :\n"))
+        print("----------------------------------------------------\n")
+        if payment_choice!=1 and payment_choice!=2:
+            print("Invalid payment choie")
+            return False
+        else:
+            if payment_choice ==1:
+                payment_mode = 'card'
+                print("Booked Successfully")
+            elif payment_choice ==2:
+                payment_mode = 'UPI'
+                print('Booked Successfully')
+            booked_time = datetime.now().strftime("%y/%m/%d:%H:%M:%S")
+            new_booking = bookingsdata(mail_id,selected_movie,selected_theatre,selected_show_time,selected_seats,total_price,payment_mode,booked_time)
+            bookingsdata.bookings.append(new_booking)
+            return True
+            
+    def display_history(self):
+        if len(bookingsdata.bookings) == 0:
+            print("Booking history is empty")
+        else:
+            print("---------------------------------------------------\n")
+            for booking in bookingsdata.bookings:
+                print(booking.movie,booking.theatre,booking.show_time,booking.seats,booking.price,booking.booked_time,sep=' -- ')
+        
+    def delete_history(self):
+        if len(bookingsdata.bookings) == 0:
+            print("Booking history is empty")
+        else:
+            del(bookingsdata.bookings[-1])
+            print("YOUR LAST HISTORY HAS BEEN DELETED")
+            choice = input("\nDo you have to clear all the history (yes/no):\n").lower()
+            if choice == 'yes':
+                bookingsdata.bookings.clear()
+                print("\nBooking history has been deleted")
+            else:
+                print("Invalid input")
+                                    
 class moviebookingsystem:
     def __init__(self):
         self.user = usersfunctionality()
         self.movie = moviesfunctionality()
         self.theatre= theatresfunctionality()
+        self.seats = seatsfunctionality()
+        self.booking = bookingfunctionality()
         self.stay_in = True
         self.mail_id = None
     
@@ -120,20 +228,22 @@ class moviebookingsystem:
     
     def run(self):
         while self.stay_in:
-            print("---------------------------------------------------\n")
+            print("\n---------------------------------------------------\n")
+            print("                 MENU                 \n")
             print("1. Book movie ")
             print("2. Display Booking history ")
             print("3. Delete Book history ")
             print("4. Logout\n")
+            print("-------------------------------------------------------\n")
             choices = int(input("Enter the choice:\n"))
             if choices == 1:
                 self.book_movie()
             elif choices == 2:
-                self.display_booking_history
+                self.display_booking_history()
             elif choices == 3:
-                self.delete_booking_history
+                self.delete_booking_history()
             elif choices == 4:
-                self.logout
+                self.logout()
             else:
                 print("Invalid Choice")
         
@@ -155,9 +265,25 @@ class moviebookingsystem:
             print("Invalid show time")
             return
         
-            
+        selected_seats = self.seats.select_seats(selected_theatre,selected_show_time)
+        if not selected_seats:
+            print("Invalid seat selection")
+            return
+        
+        total_price = len(selected_seats)*200
+        if not self.booking.booking_preview(self.mail_id,selected_movie,selected_theatre,selected_show_time,selected_seats,total_price):
+            self.stay_in = False
     
-    
+    def display_booking_history(self):
+        self.booking.display_history()
+        
+    def delete_booking_history(self):
+        self.booking.delete_history()
+        
+    def logout(self):
+        print("Logout Successfully")
+        self.stay_in = False
+           
 user1 = usersdata(1,'Janani','jananihari98@gmail.com','9865214328','janz9865')
 user2 = usersdata(2,'Hari','hari12@gmail.com','9698578016','hari9698')
 usersdata.users.append(user1)
@@ -176,6 +302,3 @@ theatresdata.theatres.append(theatre2)
 booking_system = moviebookingsystem()
 booking_system.signup_or_login()
 booking_system.run()
-
-
-
